@@ -43,6 +43,8 @@ ansible-job:
     - ansible-inventory -i ansible/hosts.yml --list  # Validate inventory
   script:
     - echo "Populating ansible_become_pass in inventory file"
+    - sed -i "s/{{ ansible_host_name_placeholder }}/$ANSIBLE_HOST_NAME_DELL_SERVER/" ansible/hosts.yml
+    - sed -i "s/{{ ansible_ssh_port_placeholder }}/$ANSIBLE_HOST_PORT_DELL_SERVER/" ansible/hosts.yml
     - sed -i "s/{{ ansible_host_placeholder }}/$ANSIBLE_HOST_DELL_SERVER/" ansible/hosts.yml
     - sed -i "s/{{ ansible_user_placeholder }}/$ANSIBLE_USER_DELL_SERVER/" ansible/hosts.yml
     - sed -i "s/{{ ansible_become_pass_placeholder }}/$ANSIBLE_BECOME_PASS_DELL_SERVER/" ansible/hosts.yml

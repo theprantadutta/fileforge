@@ -61,6 +61,7 @@ pub fn copy_ansible_files() -> io::Result<()> {
     {{ ansible_host_name_placeholder }}:
       ansible_host: "{{ ansible_host_placeholder }}"
       ansible_user: "{{ ansible_user_placeholder }}"
+      ansible_ssh_port: {{ ansible_ssh_port_placeholder }}
       ansible_ssh_port: 10
       ansible_become_user: root
       ansible_become_pass: "{{ ansible_become_pass_placeholder }}"
