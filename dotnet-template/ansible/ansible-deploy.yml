@@ -1,0 +1,37 @@
+﻿---
+- name: Deploy files and start docker compose
+  hosts: target_servers
+  become: yes
+  vars:
+    project_directory: "{{ project_directory }}"
+    project_location: "{{ project_location }}" # This is for both local and remote server
+  tasks:
+    - name: Remove the existing remote directory
+      ansible.builtin.file:
+        path: "{{ project_location }}/{{ project_directory }}"
+        state: absent
+      
+    - name: Ensure the destination directory exists on the remote server
+      ansible.builtin.file:
+        path: "{{ project_location }}/{{ project_directory }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy files to the remote server
+      ansible.builtin.copy:
+        src: "{{ project_location }}/{{ project_directory }}"
+        dest: "{{ project_location }}"
+        mode: '0755'
+        
+    - name: Run docker-compose to start the services
+      ansible.builtin.shell:
+        cmd: |
+          echo "Current Directory:"
+          pwd
+          docker compose up --build -d --remove-orphans
+        chdir: "{{ project_location }}/{{ project_directory }}"
+      register: docker_compose_result
+
+    - name: Display docker-compose result
+      debug:
+        var: docker_compose_result.stdout

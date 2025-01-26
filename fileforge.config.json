@@ -1,0 +1,11 @@
+{
+  "root_namespace": "something",
+  "dotnet_version": "9.0",
+  "service_name": "something",
+  "image_name": "something",
+  "container_name": "something",
+  "port": 80,
+  "enable_healthcheck": true,
+  "project_location": "/etc/www",
+  "project_directory": "something"
+}

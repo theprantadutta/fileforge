@@ -1,0 +1,18 @@
+﻿version: '3.9'
+services:
+  {{ service_name }}:
+    image: "{{ image_name }}"
+    container_name: "{{ container_name }}"
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '{{ port }}:5000'
+    # Only Include if healthcheck is enabled
+    healthcheck:
+      test: curl --fail http://localhost:5000/health || exit 1
+      interval: 40s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
