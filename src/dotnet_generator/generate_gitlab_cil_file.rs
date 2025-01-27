@@ -27,6 +27,11 @@ pub fn generate_gitlab_ci_file() -> io::Result<()> {
 
     // Step 2: Parse the JSON file and get `project_location` and `project_directory`
     let config: Value = serde_json::from_str(&config_content)?;
+    let dotnet_version = config["dotnet_version"]
+        .as_str()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing dotnet_version in config"))?
+        .to_string();
+
     let project_location = config["project_location"]
         .as_str()
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing project_location in config"))?
@@ -64,12 +69,38 @@ deploy-job:
 
 start-job:
   stage: start
+  before_script:
+    - echo "Logging into Microsoft Docker Registry (Nexus)..."
+    - if echo "$SONATYPE_NEXUS_PASSWORD" | docker login $SONATYPE_NEXUS_URL -u $SONATYPE_NEXUS_USERNAME --password-stdin; then
+      echo "Successfully Logged into Microsoft Docker Registry";
+      else
+      echo "Failed to Login to Microsoft Docker Registry";
+      exit 1;
+      fi
+
+    - set -e  # Exit immediately if a command exits with a non-zero status
+    - echo "Ensuring Required Docker Images Exist..."
+    - docker pull $SONATYPE_NEXUS_URL/dotnet/aspnet:9.0 || { echo "Failed to pull aspnet:9.0 image"; exit 1; }
+    - docker pull $SONATYPE_NEXUS_URL/dotnet/sdk:9.0 || { echo "Failed to pull sdk:9.0 image"; exit 1; }
+    - echo "Docker Images Pulled Successfully"
   script:
     - cd $PROJECT_PATH
-    - sudo docker-compose up --build -d --remove-orphans
-  # Only run pipeline for master branch push
+    - export SONATYPE_NEXUS_URL=$SONATYPE_NEXUS_URL
+    - |
+      # Run docker compose up and retry once if it fails
+      if ! docker compose up --build -d --remove-orphans; then
+        echo "docker compose failed. Retrying with cache clearing..."
+        echo "Stopping and removing existing containers..."
+        docker compose down || echo "Failed to stop containers, continuing..."
+        echo "Rebuilding containers without cache..."
+        docker compose build --no-cache
+        if ! docker compose up -d --remove-orphans; then
+          echo "Retry failed. Exiting..."
+          exit 1
+        fi
+      fi
   only:
-    - master
+    - master  # Add other branches/tags if needed
   tags:
     - docker
 
@@ -94,6 +125,10 @@ ansible-job:
     - cat ansible/hosts.yml # Optional: Verify the replacement (for debugging)
     - echo "Running Ansible playbook..."
     - ansible-playbook -i ansible/hosts.yml ansible/ansible-deploy.yml
+  variables:
+    SONATYPE_NEXUS_URL: $SONATYPE_NEXUS_URL
+    SONATYPE_NEXUS_USERNAME: $SONATYPE_NEXUS_USERNAME
+    SONATYPE_NEXUS_PASSWORD: $SONATYPE_NEXUS_PASSWORD
   only:
     - master
   tags:
@@ -102,6 +137,7 @@ ansible-job:
 
     // Replace placeholders with values from the config
     let updated_gitlab_ci = gitlab_ci_template
+        .replace("{{ dotnet_version }}", &dotnet_version)
         .replace("{{ project_location }}", &project_location)
         .replace("{{ project_directory }}", &project_directory);
 

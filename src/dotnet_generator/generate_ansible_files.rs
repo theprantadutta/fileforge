@@ -62,7 +62,6 @@ pub fn copy_ansible_files() -> io::Result<()> {
       ansible_host: "{{ ansible_host_placeholder }}"
       ansible_user: "{{ ansible_user_placeholder }}"
       ansible_ssh_port: {{ ansible_ssh_port_placeholder }}
-      ansible_ssh_port: 10
       ansible_become_user: root
       ansible_become_pass: "{{ ansible_become_pass_placeholder }}"
       ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
@@ -99,16 +98,54 @@ pub fn copy_ansible_files() -> io::Result<()> {
         dest: "{{ project_location }}"
         mode: '0755'
         
-    - name: Run docker-compose to start the services
+    - name: Run Sonatype Nexus Docker Login
+      ansible.builtin.shell:
+        cmd: |
+          echo "Logging into Microsoft Docker Registry (Nexus)..."
+          echo "Logging to url: {{ lookup('env', 'SONATYPE_NEXUS_URL') }} with username: {{ lookup('env', 'SONATYPE_NEXUS_USERNAME') }}"
+          if echo "{{ lookup('env', 'SONATYPE_NEXUS_PASSWORD') }}" | docker login {{ lookup('env', 'SONATYPE_NEXUS_URL') }} -u {{ lookup('env', 'SONATYPE_NEXUS_USERNAME') }} --password-stdin; then
+            echo "Successfully Logged into Microsoft Docker Registry";
+          else
+            echo "Failed to Login to Microsoft Docker Registry";
+            exit 1;
+          fi
+
+          set -e  # Exit immediately if a command exits with a non-zero status
+          echo "Ensuring Required Docker Images Exist..."
+          docker pull {{ lookup('env', 'SONATYPE_NEXUS_URL') }}/dotnet/aspnet:9.0 || { echo "Failed to pull aspnet:9.0 image"; exit 1; }
+          docker pull {{ lookup('env', 'SONATYPE_NEXUS_URL') }}/dotnet/sdk:9.0 || { echo "Failed to pull sdk:9.0 image"; exit 1; }
+          echo "Docker Images Pulled Successfully"
+      register: docker_login_result
+    
+    - name: Display docker-login result
+      debug:
+        var: docker_login_result.stdout
+
+    - name: Run docker compose to start the services
       ansible.builtin.shell:
         cmd: |
           echo "Current Directory:"
           pwd
-          docker compose up --build -d --remove-orphans
+          export SONATYPE_NEXUS_URL=$SONATYPE_NEXUS_URL
+          # Run docker compose up and retry once if it fails
+          if ! docker compose up --build -d --remove-orphans; then
+            echo "docker compose failed. Retrying with cache clearing..."
+            echo "Stopping and removing existing containers..."
+            docker compose down || echo "Failed to stop containers, continuing..."
+            echo "Rebuilding containers without cache..."
+            docker compose build --no-cache
+            if ! docker compose up -d --remove-orphans; then
+              echo "Retry failed. Exiting..."
+              exit 1
+            fi
+          fi
         chdir: "{{ project_location }}/{{ project_directory }}"
       register: docker_compose_result
-
-    - name: Display docker-compose result
+      environment:
+        SONATYPE_NEXUS_URL: "{{ lookup('env', 'SONATYPE_NEXUS_URL') }}"
+      ignore_errors: false
+    
+    - name: Display docker compose result
       debug:
         var: docker_compose_result.stdout
 "#;

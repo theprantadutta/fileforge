@@ -25,57 +25,59 @@ pub fn generate_dockerfile() -> io::Result<()> {
     let mut file = File::open(&config_path)?; // Open the file
     file.read_to_string(&mut config_content)?; // Read the content into the string
 
-    // Parse the JSON file and get the `root_namespace`
+    // Parse the JSON file and get the `project_directory`
     let config: Value = serde_json::from_str(&config_content)?;
-    let root_namespace = config["root_namespace"]
+    let project_directory = config["project_directory"]
         .as_str()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing root_namespace in config"))?
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing Project Directory in config"))?
         .to_string();
-    println!("Root namespace found in config: {}", root_namespace);
+    println!("Project Directory found in config: {}", project_directory);
 
     // Step 2: Define the Dockerfile template directly in the function
     let docker_template = r#"
-FROM mcr.microsoft.com/dotnet/aspnet:{{ dotnet_version }} AS base
-#USER $APP_UID
+# Use an ARG for the Nexus URL and set a default fallback value
+ARG SONATYPE_NEXUS_URL=mcr.microsoft.com
+
+FROM ${SONATYPE_NEXUS_URL}/dotnet/aspnet:9.0 AS base
+# USER $APP_UID
 WORKDIR /app
-#EXPOSE 8080
-#EXPOSE 8081
+# EXPOSE 8080
+# EXPOSE 8081
 
 ENV ASPNETCORE_URLS=http://+:5000
 
-# Set the timezone for the container by setting the TZ environment variable
-# to the desired timezone (in this case, Asia/Dhaka).
+# Set the timezone for the container
 ENV TZ=Asia/Dhaka
 
-# Create a symbolic link from /etc/localtime to ensure the container uses the correct timezone
+# Create a symbolic link for the timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone
 
 # For HealthChecks
 RUN apt-get update && apt-get install -y curl
 
-FROM mcr.microsoft.com/dotnet/sdk:{{ dotnet_version }} AS build
+FROM ${SONATYPE_NEXUS_URL}/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["{{ default_namespace }}.csproj", "./"]
-RUN dotnet restore "{{ default_namespace }}.csproj"
+COPY ["{{ project_directory }}.csproj", "./"]
+RUN dotnet restore "{{ project_directory }}.csproj"
 COPY . .
 WORKDIR "/src/"
-RUN dotnet build "{{ default_namespace }}.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "{{ project_directory }}.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "{{ default_namespace }}.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "{{ project_directory }}.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "{{ default_namespace }}.dll"]
+ENTRYPOINT ["dotnet", "{{ project_directory }}.dll"]
 "#;
 
     // Step 3: Replace placeholder with namespace
     let updated_dockerfile = docker_template
-        .replace("{{ dotnet_version }}", "9.0").replace("{{ default_namespace }}", &root_namespace);
+        .replace("{{ dotnet_version }}", "9.0").replace("{{ project_directory }}", &project_directory);
     println!("Updated Dockerfile:\n{}", updated_dockerfile);
 
     // Step 4: Determine the output directory based on build mode

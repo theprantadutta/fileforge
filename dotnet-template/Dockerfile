@@ -25,17 +25,17 @@ RUN apt-get update && apt-get install -y curl
 FROM mcr.microsoft.com/dotnet/sdk:{{ dotnet_version }} AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["{{ default_namespace }}.csproj", "./"]
-RUN dotnet restore "{{ default_namespace }}.csproj"
+COPY ["{{ project_directory }}.csproj", "./"]
+RUN dotnet restore "{{ project_directory }}.csproj"
 COPY . .
 WORKDIR "/src/"
-RUN dotnet build "{{ default_namespace }}.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "{{ project_directory }}.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "{{ default_namespace }}.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "{{ project_directory }}.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "{{ default_namespace }}.dll"]
+ENTRYPOINT ["dotnet", "{{ project_directory }}.dll"]
