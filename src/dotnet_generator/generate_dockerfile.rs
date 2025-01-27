@@ -35,7 +35,7 @@ pub fn generate_dockerfile() -> io::Result<()> {
 
     // Step 2: Define the Dockerfile template directly in the function
     let docker_template = r#"
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:{{ dotnet_version }} AS base
 #USER $APP_UID
 WORKDIR /app
 #EXPOSE 8080
@@ -54,7 +54,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 # For HealthChecks
 RUN apt-get update && apt-get install -y curl
 
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:{{ dotnet_version }} AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["{{ default_namespace }}.csproj", "./"]
@@ -74,7 +74,8 @@ ENTRYPOINT ["dotnet", "{{ default_namespace }}.dll"]
 "#;
 
     // Step 3: Replace placeholder with namespace
-    let updated_dockerfile = docker_template.replace("{{ default_namespace }}", &root_namespace);
+    let updated_dockerfile = docker_template
+        .replace("{{ dotnet_version }}", "9.0").replace("{{ default_namespace }}", &root_namespace);
     println!("Updated Dockerfile:\n{}", updated_dockerfile);
 
     // Step 4: Determine the output directory based on build mode
