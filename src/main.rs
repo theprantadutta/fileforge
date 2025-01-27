@@ -56,6 +56,9 @@ fn main() {
                     }
                 }
             }
+            
+            println!("Unstaged files: {}", unstaged_files);
+            println!("Is only config unstaged: {}", is_only_config_unstaged);
 
             if unstaged_files || !is_only_config_unstaged {
                 eprintln!("Error: You have unstaged files. Please commit or stash your changes.");
