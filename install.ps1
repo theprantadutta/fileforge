@@ -69,3 +69,5 @@ if (-not $envPath.Split(";").Contains($installDir)) {
 }
 
 Write-Host "Fileforge v$version installed successfully in $installDir!"
+Write-Host "You can now run 'fileforge' from the command line."
+Write-Host "Please restart your terminal to use the 'fileforge' command."
