@@ -1,20 +1,26 @@
-use std::env;
-use std::fs;
-use std::fs::File;
+use std::time::Duration;
+use std::{env, thread};
+use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use serde_json::Value;
 
 pub fn generate_dockerfile() -> io::Result<()> {
+    println!("🚀 Starting Dockerfile generation...");
+    thread::sleep(Duration::from_secs(1));
+
     // Get the current directory
     let current_dir = env::current_dir()?;
-    println!("Current directory: {:?}", current_dir);
+    println!("📂 Current directory: {:?}", current_dir);
+    thread::sleep(Duration::from_secs(1));
 
-    // Step 1: Check for `fileforge.config.json`
+    // Check for `fileforge.config.json`
     let config_path = current_dir.join("fileforge.config.json");
-    println!("Config file path: {:?}", config_path);
+    println!("🔍 Checking for config file at: {:?}", config_path);
+    thread::sleep(Duration::from_secs(1));
 
     if !config_path.exists() {
-        println!("Error: Config file not found at {:?}", config_path);
+        println!("❌ Config file not found!");
+        thread::sleep(Duration::from_secs(1));
         return Err(io::Error::new(
             io::ErrorKind::NotFound,
             "fileforge.config.json not found.",
@@ -22,23 +28,25 @@ pub fn generate_dockerfile() -> io::Result<()> {
     }
 
     let mut config_content = String::new();
-    let mut file = File::open(&config_path)?; // Open the file
-    file.read_to_string(&mut config_content)?; // Read the content into the string
+    File::open(&config_path)?.read_to_string(&mut config_content)?;
+    println!("✅ Config file found and loaded!");
+    thread::sleep(Duration::from_secs(1));
 
-    // Parse the JSON file and get the `project_directory`
+    // Parse the JSON file
     let config: Value = serde_json::from_str(&config_content)?;
     let project_directory = config["project_directory"]
         .as_str()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing Project Directory in config"))?
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing 'project_directory'"))?
         .to_string();
-    println!("Project Directory found in config: {}", project_directory);
+    println!("📂 Found project directory: {}", project_directory);
+    thread::sleep(Duration::from_secs(1));
 
-    // Step 2: Define the Dockerfile template directly in the function
+    // Prepare Dockerfile template
     let docker_template = r#"
 # Use an ARG for the Nexus URL and set a default fallback value
 ARG SONATYPE_NEXUS_URL=mcr.microsoft.com
 
-FROM ${SONATYPE_NEXUS_URL}/dotnet/aspnet:{{ dotnet_version }} AS base
+FROM ${SONATYPE_NEXUS_URL}/dotnet/aspnet:9.0 AS base
 # USER $APP_UID
 WORKDIR /app
 # EXPOSE 8080
@@ -56,7 +64,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 # For HealthChecks
 RUN apt-get update && apt-get install -y curl
 
-FROM ${SONATYPE_NEXUS_URL}/dotnet/sdk:{{ dotnet_version }} AS build
+FROM ${SONATYPE_NEXUS_URL}/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["{{ project_directory }}.csproj", "./"]
@@ -75,29 +83,29 @@ COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "{{ project_directory }}.dll"]
 "#;
 
-    // Step 3: Replace placeholder with namespace
     let updated_dockerfile = docker_template
-        .replace("{{ dotnet_version }}", "{{ dotnet_version }}").replace("{{ project_directory }}", &project_directory);
-    println!("Updated Dockerfile:\n{}", updated_dockerfile);
+        .replace("{{ dotnet_version }}", "6.0") // Replace with actual .NET version
+        .replace("{{ project_directory }}", &project_directory);
+    println!("✅ Dockerfile template updated with project directory.");
+    thread::sleep(Duration::from_secs(1));
 
-    // Step 4: Determine the output directory based on build mode
+    // Write Dockerfile to output directory
     #[cfg(debug_assertions)]
-    let output_dir = current_dir.join("testing_directory").join("dotnet-testing"); // Debug mode path
-
+    let output_dir = current_dir.join("testing_directory").join("dotnet-testing");
     #[cfg(not(debug_assertions))]
-    let output_dir = current_dir.clone(); // Release mode path
+    let output_dir = current_dir.clone();
 
-    // Ensure the directory exists
-    println!("Ensuring directory exists: {:?}", output_dir);
+    println!("📁 Ensuring output directory exists: {:?}", output_dir);
     fs::create_dir_all(&output_dir)?;
+    thread::sleep(Duration::from_secs(1));
 
-    // Write the updated content to `Dockerfile` in the determined directory
     let output_path = output_dir.join("Dockerfile");
-    println!("Output path: {:?}", output_path);
-
     let mut output_file = File::create(&output_path)?;
     output_file.write_all(updated_dockerfile.as_bytes())?;
-    println!("Dockerfile written successfully to {:?}", output_path);
+    println!("✅ Dockerfile written to: {:?}", output_path);
+    thread::sleep(Duration::from_secs(1));
 
+    println!("🎉 Dockerfile generation completed successfully!");
+    thread::sleep(Duration::from_secs(1));
     Ok(())
 }

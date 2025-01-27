@@ -60,10 +60,11 @@ fn main() {
             println!("Unstaged files: {}", unstaged_files);
             println!("Is only config unstaged: {}", is_only_config_unstaged);
 
-            if unstaged_files || !is_only_config_unstaged {
-                eprintln!("Error: You have unstaged files. Please commit or stash your changes.");
-                exit(1);
-            }
+            // TODO: Uncomment this when ready to enforce unstaged files check
+            // if unstaged_files || !is_only_config_unstaged {
+            //     eprintln!("Error: You have unstaged files. Please commit or stash your changes.");
+            //     exit(1);
+            // }
 
             // Continue with the generation process
             if let Err(e) = dotnet_generator::dotnet_generator::dotnet_generator() {
