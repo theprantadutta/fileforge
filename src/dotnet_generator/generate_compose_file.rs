@@ -1,6 +1,7 @@
 use std::env;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
+use std::path::Path;
 
 pub fn generate_compose_file() -> io::Result<()> {
   // Step 1: Get the current directory
@@ -76,6 +77,18 @@ networks:
 
   fs::create_dir_all(&output_dir)?;
   let output_path = output_dir.join("compose.yaml");
+
+  // Delete if we have any previous docker-compose.yaml file
+  let file_path = "docker-compose.yaml";
+
+  if Path::new(file_path).exists() {
+      match fs::remove_file(file_path) {
+          Ok(_) => println!("Previous docker-compose.yaml file deleted successfully."),
+          Err(e) => eprintln!("Error deleting docker-compose.yaml: {}", e),
+      }
+  } else {
+      println!("No previous docker-compose.yaml file found.");
+  }
 
   // Step 5: Write the generated content to `compose.yaml`
   let mut output_file = File::create(&output_path)?;

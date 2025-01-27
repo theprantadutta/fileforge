@@ -38,7 +38,7 @@ pub fn generate_dockerfile() -> io::Result<()> {
 # Use an ARG for the Nexus URL and set a default fallback value
 ARG SONATYPE_NEXUS_URL=mcr.microsoft.com
 
-FROM ${SONATYPE_NEXUS_URL}/dotnet/aspnet:9.0 AS base
+FROM ${SONATYPE_NEXUS_URL}/dotnet/aspnet:{{ dotnet_version }} AS base
 # USER $APP_UID
 WORKDIR /app
 # EXPOSE 8080
@@ -56,7 +56,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 # For HealthChecks
 RUN apt-get update && apt-get install -y curl
 
-FROM ${SONATYPE_NEXUS_URL}/dotnet/sdk:9.0 AS build
+FROM ${SONATYPE_NEXUS_URL}/dotnet/sdk:{{ dotnet_version }} AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["{{ project_directory }}.csproj", "./"]
@@ -77,7 +77,7 @@ ENTRYPOINT ["dotnet", "{{ project_directory }}.dll"]
 
     // Step 3: Replace placeholder with namespace
     let updated_dockerfile = docker_template
-        .replace("{{ dotnet_version }}", "9.0").replace("{{ project_directory }}", &project_directory);
+        .replace("{{ dotnet_version }}", "{{ dotnet_version }}").replace("{{ project_directory }}", &project_directory);
     println!("Updated Dockerfile:\n{}", updated_dockerfile);
 
     // Step 4: Determine the output directory based on build mode

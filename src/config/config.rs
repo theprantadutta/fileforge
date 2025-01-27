@@ -68,15 +68,17 @@ pub fn create_or_update_config() -> io::Result<()> {
         get_input_from_user("Dotnet version (e.g., net9.0): ")
     };
 
+    let hyphened_root_namespace = root_namespace.replace("_", "-").to_lowercase();
+
     // Ask for other configurations
-    let service_name = get_input_from_user_with_default("Service name: ", &root_namespace);
-    let image_name = get_input_from_user_with_default("Image name: ", &root_namespace);
-    let container_name = get_input_from_user_with_default("Container name: ", &root_namespace);
-    
+    let service_name = get_input_from_user_with_default("Service name: ", &hyphened_root_namespace);
+    let image_name = get_input_from_user_with_default("Image name: ", &hyphened_root_namespace);
+    let container_name = get_input_from_user_with_default("Container name: ", &hyphened_root_namespace);
+
     let port = get_port_from_user();
     let enable_healthcheck = get_healthcheck_from_user();
     let project_location = get_input_from_user_with_default("Project location (default: /etc/www, don't include the trailing slash): ", "/etc/www");
-    let project_directory = get_input_from_user_with_default("Project directory: ", &root_namespace);
+    let project_directory = get_input_from_user_with_default("Project directory: ", &hyphened_root_namespace);
 
     // Save to config file
     let config = Config {

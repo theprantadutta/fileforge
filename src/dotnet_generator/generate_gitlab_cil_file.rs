@@ -80,8 +80,8 @@ start-job:
 
     - set -e  # Exit immediately if a command exits with a non-zero status
     - echo "Ensuring Required Docker Images Exist..."
-    - docker pull $SONATYPE_NEXUS_URL/dotnet/aspnet:9.0 || { echo "Failed to pull aspnet:9.0 image"; exit 1; }
-    - docker pull $SONATYPE_NEXUS_URL/dotnet/sdk:9.0 || { echo "Failed to pull sdk:9.0 image"; exit 1; }
+    - docker pull $SONATYPE_NEXUS_URL/dotnet/aspnet:{{ dotnet_version }} || { echo "Failed to pull aspnet:{{ dotnet_version }} image"; exit 1; }
+    - docker pull $SONATYPE_NEXUS_URL/dotnet/sdk:{{ dotnet_version }} || { echo "Failed to pull sdk:{{ dotnet_version }} image"; exit 1; }
     - echo "Docker Images Pulled Successfully"
   script:
     - cd $PROJECT_PATH
