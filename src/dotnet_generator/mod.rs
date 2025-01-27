@@ -3,3 +3,4 @@ pub mod generate_dockerfile;
 pub mod generate_compose_file;
 pub mod generate_gitlab_cil_file;
 pub mod generate_ansible_files; 
+pub mod handle_dotnet_generation;

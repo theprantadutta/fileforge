@@ -1,8 +1,13 @@
 mod dotnet_generator;
 mod config;
+mod shared;
 
-use std::env;
-use std::process::{Command, exit};
+use std::fs::File;
+use std::io::Read;
+use std::{env, fs};
+use std::process::exit;
+
+use dotnet_generator::handle_dotnet_generation::{self};
 
 fn main() {
     // Get the command-line arguments
@@ -18,59 +23,65 @@ fn main() {
 
     match args[1].as_str() {
         "init" => {
-            if let Err(e) = config::config::create_or_update_config() {
-                eprintln!("Error generating configuration: {}", e);
-                std::process::exit(1);
+            // Check if the project is a .NET project or an Angular project
+            let is_dotnet_project = fs::read_dir(".")
+                .map(|mut entries| entries.any(|entry| entry
+                    .map(|e| e.path().extension().map_or(false, |ext| ext == "csproj" || ext == "sln"))
+                    .unwrap_or(false)))
+                .unwrap_or(false);
+            
+            let is_angular_project = fs::read_dir(".")
+                .map(|mut entries| entries.any(|entry| entry
+                    .map(|e| e.path().file_name().map_or(false, |name| name == "package.json"))
+                    .unwrap_or(false)))
+                .unwrap_or(false);
+           
+            if is_angular_project {
+                println!("Detected Angular project. Checking for @angular/core...");
+    
+                let package_json_path = "package.json";
+                let mut package_json = String::new();
+                
+                if let Ok(mut file) = File::open(package_json_path) {
+                    if file.read_to_string(&mut package_json).is_ok() {
+                        if package_json.contains("@angular/core") {
+                            println!("@angular/core found in package.json. Generating Angular configuration...");
+                            if let Err(e) = config::angular_config::create_or_update_config() {
+                                eprintln!("Error generating Angular configuration: {}", e);
+                                exit(1);
+                            }
+                        } else {
+                            eprintln!("@angular/core not found in package.json. This does not appear to be an Angular project.");
+                            eprintln!("Right now, we only support Angular and Dotnet Core projects.");
+                            exit(0);
+                        }
+                    } else {
+                        eprintln!("Error reading package.json.");
+                        exit(1);
+                    }
+                } else {
+                    eprintln!("package.json not found.");
+                    exit(1);
+                }
+            } else if is_dotnet_project {
+                println!("Detected .NET project. Generating .NET configuration...");
+                if let Err(e) = config::dotnet_config::create_or_update_config() {
+                    eprintln!("Error generating .NET configuration: {}", e);
+                    exit(1);
+                }
+            } else {
+                eprintln!("Neither .NET nor Angular project detected. Cannot generate configuration.");
+                eprintln!("Right now, we only support Angular and Dotnet Core projects.");
+                exit(0);
             }
+
+            // if let Err(e) = config::dotnet_config::create_or_update_config() {
+            //     eprintln!("Error generating configuration: {}", e);
+            //     std::process::exit(1);
+            // }
         }
         "generate" => {
-            // Check if the fileforge.config.json file exists at the root of the project
-            let config_path = std::path::Path::new("fileforge.config.json");
-
-            if !config_path.exists() {
-                eprintln!("Error: fileforge.config.json not found. Run 'fileforge init' to generate a config.");
-                exit(1);
-            }
-
-            // Check for unstaged git files
-            let git_status_output = Command::new("git")
-                .arg("status")
-                .arg("--porcelain")
-                .output()
-                .expect("Failed to execute git status");
-
-            let git_status = String::from_utf8_lossy(&git_status_output.stdout);
-
-            // If there are any unstaged files, but not just fileforge.config.json
-            let mut unstaged_files = false;
-            let mut is_only_config_unstaged = true;
-
-            for line in git_status.lines() {
-                let status = line.split_whitespace().collect::<Vec<&str>>();
-
-                if status.len() > 1 {
-                    if status[1] != "fileforge.config.json" {
-                        unstaged_files = true;
-                    } else {
-                        is_only_config_unstaged = false;
-                    }
-                }
-            }
-            
-            println!("Unstaged files: {}", unstaged_files);
-            println!("Is only config unstaged: {}", is_only_config_unstaged);
-
-            // TODO: Uncomment this when ready to enforce unstaged files check
-            // if unstaged_files || !is_only_config_unstaged {
-            //     eprintln!("Error: You have unstaged files. Please commit or stash your changes.");
-            //     exit(1);
-            // }
-
-            // Continue with the generation process
-            if let Err(e) = dotnet_generator::dotnet_generator::dotnet_generator() {
-                eprintln!("Error generating dotnet generator: {}", e);
-                exit(1);
-            }
+            handle_dotnet_generation::handle_dotnet_generation();
         }
         _ => {
             eprintln!("Unknown command: {}", args[1]);

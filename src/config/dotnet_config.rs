@@ -2,8 +2,11 @@ use std::fs::{File, self};
 use std::io::{self, Read, Write};
 use serde::{Serialize, Deserialize};
 
+use crate::shared::shared_input_helper::{get_input_from_user, get_input_from_user_with_default, get_port_from_user};
+
 #[derive(Serialize, Deserialize)]
-pub struct Config {
+pub struct DotnetConfig {
+    pub project_type: String,
     pub root_namespace: String,
     pub dotnet_version: String,
     pub service_name: String,
@@ -81,7 +84,8 @@ pub fn create_or_update_config() -> io::Result<()> {
     let project_directory = get_input_from_user_with_default("Project directory: ", &hyphened_root_namespace);
 
     // Save to config file
-    let config = Config {
+    let config = DotnetConfig {
+        project_type: "dotnet".to_string(),
         root_namespace,
         dotnet_version,
         service_name,
@@ -98,38 +102,9 @@ pub fn create_or_update_config() -> io::Result<()> {
     let config_json = serde_json::to_string_pretty(&config)?;
     config_file.write_all(config_json.as_bytes())?;
 
-    println!("Configuration saved to fileforge.config.json");
+    println!("DotnetConfiguration saved to fileforge.config.json");
 
     Ok(())
-}
-
-fn get_input_from_user(prompt: &str) -> String {
-    let mut input = String::new();
-    println!("{}", prompt);
-    io::stdin().read_line(&mut input).expect("Failed to read input.");
-    input.trim().to_string()
-}
-
-fn get_input_from_user_with_default(prompt: &str, default: &str) -> String {
-    let mut input = String::new();
-    println!("{} (default: {})", prompt, default);
-    io::stdin().read_line(&mut input).expect("Failed to read input.");
-    if input.trim().is_empty() {
-        default.to_string()
-    } else {
-        input.trim().to_string()
-    }
-}
-
-fn get_port_from_user() -> u16 {
-    loop {
-        let port: String = get_input_from_user("Port (e.g., 80): ");
-        if let Ok(port_num) = port.parse::<u16>() {
-            return port_num;
-        } else {
-            println!("Invalid port. Please enter a valid integer.");
-        }
-    }
 }
 
 fn get_healthcheck_from_user() -> bool {

@@ -94,8 +94,8 @@ let ansible_deploy_content = r#"---
   hosts: target_servers
   become: yes
   vars:
-    project_directory: "{{ project_directory }}"
-    project_location: "{{ project_location }}" # This is for both local and remote server
+    project_directory: "[[ project_directory ]]"
+    project_location: "[[ project_location ]]" # This is for both local and remote server
   tasks:
     - name: Remove the existing remote directory
       ansible.builtin.file:
@@ -167,8 +167,8 @@ let ansible_deploy_content = r#"---
 "#;
 
     let updated_ansible_deploy_content = ansible_deploy_content
-        .replace("{{ project_location }}", &project_location)
-        .replace("{{ project_directory }}", &project_directory);
+        .replace("[[ project_location ]]", &project_location)
+        .replace("[[ project_directory ]]", &project_directory);
 
     let ansible_deploy_file_path = ansible_dir.join("ansible-deploy.yml");
     let mut ansible_deploy_file = File::create(&ansible_deploy_file_path)?;
