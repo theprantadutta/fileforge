@@ -10,6 +10,7 @@ use std::{env, thread};
 
 use angular_generator::handle_angular_generation::handle_angular_generation;
 use config::handle_config_generation::handle_config_generation;
+use constants::SLEEP_DURATION;
 use dotnet_generator::handle_dotnet_generation::handle_dotnet_generation;
 use shared::check_git_status::check_git_status;
 
@@ -98,21 +99,37 @@ fn main() {
                         }
                     }
                 }
-                "version" => {
-                    println!("📦 Fileforge version: {}", env!("CARGO_PKG_VERSION"));
-                }
-                "config" => {
-                    println!("🔧 Configuration: {:?}", config);
-                }
                 _ => {
                     eprintln!("Unknown project type: {}", project_type);
                     exit(1);
                 }
             }
         }
+        "version" => {
+            println!("📦 Fileforge version: {}", env!("CARGO_PKG_VERSION"));
+        }
+        "config" => {
+            let current_dir = env::current_dir().unwrap();
+            println!("📂 Current directory: {:?}", current_dir);
+            // Check if the fileforge.config.json file exists at the root of the project
+            let config_path = std::path::Path::new("fileforge.config.json");
+
+            if !config_path.exists() {
+                eprintln!("Error: fileforge.config.json not found. Run 'fileforge init' to generate a config.");
+                exit(1);
+            }
+            // Load the configuration from `fileforge.config.json`
+            let config = shared::get_current_config::get_current_config(current_dir);
+            thread::sleep(SLEEP_DURATION);
+            // show the output in json format
+            println!(
+                "🔧 Config File: \n\n{}",
+                serde_json::to_string_pretty(&config).unwrap()
+            );
+        }
         _ => {
             eprintln!("Unknown command: {}", args[1]);
-            eprintln!("Available commands: init, generate");
+            eprintln!("Available commands: init, generate, config, version");
             exit(1);
         }
     }
