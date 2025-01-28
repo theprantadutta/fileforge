@@ -1,7 +1,17 @@
 [package]
 name = "fileforge"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
+authors = ["Pranta Dutta"]
+description = "Code Generation Tool for File I/O in Rust"
+homepage = "https://github.com/theprantadutta/fileforge"
+
+[profile.release]
+strip = true      # Automatically strip symbols from the binary.
+opt-level = "z"   # Optimize for size.
+lto = true
+codegen-units = 1
+panic = "abort"
 
 [dependencies]
 regex = "1.11.1"
