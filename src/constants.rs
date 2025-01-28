@@ -1,3 +1,4 @@
 use std::time::Duration;
 
-pub const SLEEP_DURATION: Duration = Duration::from_secs(1);
+/// A constant defining the duration for pauses between logs, improving readability in the terminal.
+pub const SLEEP_DURATION: Duration = Duration::from_millis(400);

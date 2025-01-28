@@ -73,6 +73,8 @@ pub fn handle_config_generation() -> io::Result<()> {
     } else {
         eprintln!("Neither .NET nor Angular project detected. Cannot generate configuration.");
         eprintln!("Right now, we only support Angular and Dotnet Core projects.");
+        eprintln!("Also, you can manually create a fileforge.config.json file at the root of your project.");
+        eprintln!("Refer to the documentation for more information.");
         exit(0);
     }
 

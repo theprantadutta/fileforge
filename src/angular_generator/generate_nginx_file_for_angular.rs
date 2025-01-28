@@ -70,7 +70,7 @@ http {
             Err(e) => eprintln!("❌ Error deleting file: {}", e),
         }
     } else {
-        println!("🗂️  No previous nginx.conf file found.");
+        println!("🗂️ No previous nginx.conf file found.");
         thread::sleep(SLEEP_DURATION);
     }
 

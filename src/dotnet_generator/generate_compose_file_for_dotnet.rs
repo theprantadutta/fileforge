@@ -116,7 +116,7 @@ networks:
             Err(e) => eprintln!("❌ Error deleting file: {}", e),
         }
     } else {
-        println!("🗂️  No previous docker-compose.yaml file found.");
+        println!("🗂️ No previous docker-compose.yaml file found.");
         thread::sleep(SLEEP_DURATION);
     }
 
