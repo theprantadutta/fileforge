@@ -6,7 +6,7 @@ pub fn get_input_from_user(prompt: &str) -> String {
     io::stdin()
         .read_line(&mut input)
         .expect("Failed to read input.");
-    print!("{}: ", input.trim());
+    println!("{}: ", input.trim());
     input.trim().to_string()
 }
 
@@ -20,7 +20,7 @@ pub fn get_input_from_user_with_default(prompt: &str, default: &str) -> String {
         println!("Using default value: {}", default);
         default.to_string()
     } else {
-        print!("{}: ", input.trim());
+        println!("{}: ", input.trim());
         input.trim().to_string()
     }
 }

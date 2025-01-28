@@ -22,6 +22,8 @@ fn main() {
         eprintln!("Commands:");
         eprintln!("  init      Generate configuration");
         eprintln!("  generate  Generate the Dockerfile");
+        eprintln!("  config    Print the current configuration");
+        eprintln!("  version   Print the version of fileforge");
         std::process::exit(1);
     }
 
@@ -77,7 +79,7 @@ fn main() {
             match project_type {
                 "dotnet" => match handle_dotnet_generation() {
                     Ok(_) => {
-                        print!("✅ Everything has been generated successfully!");
+                        println!("✅ Everything has been generated successfully!");
                     }
                     Err(_) => {
                         eprintln!("❌ Error generating Dockerfile for .NET project.");
@@ -88,13 +90,19 @@ fn main() {
                     // angular_generator::handle_angular_generation::handle_angular_generation();
                     match handle_angular_generation() {
                         Ok(_) => {
-                            print!("✅ Everything has been generated successfully!");
+                            println!("✅ Everything has been generated successfully!");
                         }
                         Err(_) => {
                             eprintln!("❌ Error generating Dockerfile for Angular project.");
                             exit(1);
                         }
                     }
+                }
+                "version" => {
+                    println!("📦 Fileforge version: {}", env!("CARGO_PKG_VERSION"));
+                }
+                "config" => {
+                    println!("🔧 Configuration: {:?}", config);
                 }
                 _ => {
                     eprintln!("Unknown project type: {}", project_type);
