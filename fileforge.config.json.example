@@ -9,3 +9,15 @@
   "project_location": "/etc/www",
   "project_directory": "something"
 }
+
+
+{
+  "project_type": "angular",
+  "node_version": "20.10.0",
+  "service_name": "ansible-docker-generator",
+  "image_name": "ansible-docker-generator",
+  "container_name": "ansible-docker-generator",
+  "port": 81,
+  "project_location": "/etc/www",
+  "project_directory": "ansible-docker-generator"
+}

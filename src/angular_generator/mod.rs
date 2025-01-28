@@ -1,0 +1,6 @@
+pub mod generate_compose_file_for_angular;
+pub mod generate_dockerfile_for_angular;
+pub mod generate_gitlab_ci_file_for_angular;
+pub mod generate_nginx_file_for_angular;
+pub mod handle_angular_generation;
+pub mod generate_ansible_files_for_angular;

@@ -1,0 +1,24 @@
+{
+    // Format code on save
+    "editor.formatOnSave": true,
+    // Organize imports on save
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "always"
+    },
+    // Use rust-analyzer as the language server for Rust
+    "rust-analyzer.checkOnSave.command": "clippy",
+    // Rust-specific settings for formatting and linting
+    "rust-analyzer.cargo.autoReload": true,
+    "rust-analyzer.formatOnSave": true,
+    // Use stable rustfmt for formatting
+    "rust-analyzer.rustfmt.overrideCommand": [
+        "rustfmt",
+        "--edition",
+        "2021"
+    ],
+    // Control other code style options
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    }
+}

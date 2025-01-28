@@ -1,8 +1,10 @@
-use std::fs::{File, self};
+use serde::{Deserialize, Serialize};
+use std::fs::{self, File};
 use std::io::{self, Read, Write};
-use serde::{Serialize, Deserialize};
 
-use crate::shared::shared_input_helper::{get_input_from_user, get_input_from_user_with_default, get_port_from_user};
+use crate::shared::shared_input_helper::{
+    get_input_from_user, get_input_from_user_with_default, get_port_from_user,
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct DotnetConfig {
@@ -25,7 +27,8 @@ pub fn create_or_update_config() -> io::Result<()> {
         .filter_map(|entry| entry.ok())
         .find(|entry| entry.path().extension() == Some("csproj".as_ref()));
 
-    let root_namespace = if let Some(ref csproj_entry) = csproj_path {  // Borrowing instead of moving
+    let root_namespace = if let Some(ref csproj_entry) = csproj_path {
+        // Borrowing instead of moving
         println!("Found .csproj file: {:?}", csproj_entry.path());
         let mut csproj_content = String::new();
         File::open(csproj_entry.path())?.read_to_string(&mut csproj_content)?;
@@ -38,7 +41,9 @@ pub fn create_or_update_config() -> io::Result<()> {
                 println!("Root namespace found: {}", namespace.trim());
                 namespace.trim().to_string()
             } else {
-                println!("No <RootNamespace> closing tag found. Please provide the root namespace:");
+                println!(
+                    "No <RootNamespace> closing tag found. Please provide the root namespace:"
+                );
                 get_input_from_user("Root namespace: ")
             }
         } else {
@@ -51,7 +56,8 @@ pub fn create_or_update_config() -> io::Result<()> {
     };
 
     // Get .NET version
-    let dotnet_version = if let Some(ref csproj_entry) = csproj_path {  // Borrowing instead of moving
+    let dotnet_version = if let Some(ref csproj_entry) = csproj_path {
+        // Borrowing instead of moving
         let csproj_content = fs::read_to_string(csproj_entry.path())?;
         if let Some(start) = csproj_content.find("<TargetFramework>net") {
             if let Some(end) = csproj_content[start..].find("</TargetFramework>") {
@@ -59,7 +65,9 @@ pub fn create_or_update_config() -> io::Result<()> {
                 println!("Found .NET version: {}", version);
                 version.trim().to_string()
             } else {
-                println!("No <TargetFramework> closing tag found. Please provide the .NET version:");
+                println!(
+                    "No <TargetFramework> closing tag found. Please provide the .NET version:"
+                );
                 get_input_from_user("Dotnet version (e.g., net9.0): ")
             }
         } else {
@@ -76,12 +84,17 @@ pub fn create_or_update_config() -> io::Result<()> {
     // Ask for other configurations
     let service_name = get_input_from_user_with_default("Service name: ", &hyphened_root_namespace);
     let image_name = get_input_from_user_with_default("Image name: ", &hyphened_root_namespace);
-    let container_name = get_input_from_user_with_default("Container name: ", &hyphened_root_namespace);
+    let container_name =
+        get_input_from_user_with_default("Container name: ", &hyphened_root_namespace);
 
     let port = get_port_from_user();
     let enable_healthcheck = get_healthcheck_from_user();
-    let project_location = get_input_from_user_with_default("Project location (default: /etc/www, don't include the trailing slash): ", "/etc/www");
-    let project_directory = get_input_from_user_with_default("Project directory: ", &hyphened_root_namespace);
+    let project_location = get_input_from_user_with_default(
+        "Project location (default: /etc/www, don't include the trailing slash): ",
+        "/etc/www",
+    );
+    let project_directory =
+        get_input_from_user_with_default("Project directory: ", &hyphened_root_namespace);
 
     // Save to config file
     let config = DotnetConfig {
@@ -109,12 +122,15 @@ pub fn create_or_update_config() -> io::Result<()> {
 
 fn get_healthcheck_from_user() -> bool {
     loop {
-        let healthcheck: String = get_input_from_user("Enable healthcheck (yes/no), defaults to no: ");
+        let healthcheck: String =
+            get_input_from_user("Enable healthcheck (yes/no), defaults to no: ");
 
         // Set default to "no" if the input is empty
         let healthcheck = if healthcheck.trim().is_empty() {
+            println!("Using default value: no");
             "no".to_string()
         } else {
+            println!("Using provided value: {}", healthcheck);
             healthcheck
         };
 

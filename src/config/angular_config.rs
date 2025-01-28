@@ -1,7 +1,15 @@
-use std::{ fs::File, io::{self, Write}};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::{
+    fs::File,
+    io::{self, Write},
+};
 
-use crate::shared::{directory_helper, shared_input_helper::{get_input_from_user, get_input_from_user_with_default, get_port_from_user}};
+use crate::shared::{
+    directory_helper,
+    shared_input_helper::{
+        get_input_from_user, get_input_from_user_with_default, get_port_from_user,
+    },
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct AngularConfig {
@@ -17,8 +25,10 @@ pub struct AngularConfig {
 
 pub fn create_or_update_config() -> io::Result<()> {
     // Get the root directory name
-    let current_dir = directory_helper::get_current_directory()
-        .unwrap_or_else(|e| { eprintln!("Error: {}", e); String::new() });
+    let current_dir = directory_helper::get_current_directory().unwrap_or_else(|e| {
+        eprintln!("Error: {}", e);
+        String::new()
+    });
     println!("📂 Root Directory: {:?}", current_dir);
 
     let node_version = get_input_from_user("Node Version: ");
@@ -27,7 +37,10 @@ pub fn create_or_update_config() -> io::Result<()> {
     let container_name = get_input_from_user_with_default("Container name: ", &current_dir);
 
     let port = get_port_from_user();
-    let project_location = get_input_from_user_with_default("Project location (default: /etc/www, don't include the trailing slash): ", "/etc/www");
+    let project_location = get_input_from_user_with_default(
+        "Project location (default: /etc/www, don't include the trailing slash): ",
+        "/etc/www",
+    );
     let project_directory = get_input_from_user_with_default("Project directory: ", &current_dir);
 
     // Save to config file

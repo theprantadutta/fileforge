@@ -1,20 +1,24 @@
-mod dotnet_generator;
+mod angular_generator;
 mod config;
+mod constants;
+mod dotnet_generator;
 mod shared;
 
-use std::fs::File;
-use std::io::Read;
-use std::{env, fs};
 use std::process::exit;
+use std::time::Duration;
+use std::{env, thread};
 
-use dotnet_generator::handle_dotnet_generation::{self};
+use angular_generator::handle_angular_generation::handle_angular_generation;
+use config::handle_config_generation::handle_config_generation;
+use dotnet_generator::handle_dotnet_generation::handle_dotnet_generation;
+use shared::check_git_status::check_git_status;
 
 fn main() {
     // Get the command-line arguments
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        eprintln!("Usage: fileforge <command>");
+        eprintln!("Usage: fileforge <command> [--ignore-git]");
         eprintln!("Commands:");
         eprintln!("  init      Generate configuration");
         eprintln!("  generate  Generate the Dockerfile");
@@ -22,66 +26,81 @@ fn main() {
     }
 
     match args[1].as_str() {
-        "init" => {
-            // Check if the project is a .NET project or an Angular project
-            let is_dotnet_project = fs::read_dir(".")
-                .map(|mut entries| entries.any(|entry| entry
-                    .map(|e| e.path().extension().map_or(false, |ext| ext == "csproj" || ext == "sln"))
-                    .unwrap_or(false)))
-                .unwrap_or(false);
-            
-            let is_angular_project = fs::read_dir(".")
-                .map(|mut entries| entries.any(|entry| entry
-                    .map(|e| e.path().file_name().map_or(false, |name| name == "package.json"))
-                    .unwrap_or(false)))
-                .unwrap_or(false);
-           
-            if is_angular_project {
-                println!("Detected Angular project. Checking for @angular/core...");
-    
-                let package_json_path = "package.json";
-                let mut package_json = String::new();
-                
-                if let Ok(mut file) = File::open(package_json_path) {
-                    if file.read_to_string(&mut package_json).is_ok() {
-                        if package_json.contains("@angular/core") {
-                            println!("@angular/core found in package.json. Generating Angular configuration...");
-                            if let Err(e) = config::angular_config::create_or_update_config() {
-                                eprintln!("Error generating Angular configuration: {}", e);
-                                exit(1);
-                            }
-                        } else {
-                            eprintln!("@angular/core not found in package.json. This does not appear to be an Angular project.");
-                            eprintln!("Right now, we only support Angular and Dotnet Core projects.");
-                            exit(0);
-                        }
-                    } else {
-                        eprintln!("Error reading package.json.");
-                        exit(1);
-                    }
-                } else {
-                    eprintln!("package.json not found.");
-                    exit(1);
-                }
-            } else if is_dotnet_project {
-                println!("Detected .NET project. Generating .NET configuration...");
-                if let Err(e) = config::dotnet_config::create_or_update_config() {
-                    eprintln!("Error generating .NET configuration: {}", e);
-                    exit(1);
-                }
-            } else {
-                eprintln!("Neither .NET nor Angular project detected. Cannot generate configuration.");
-                eprintln!("Right now, we only support Angular and Dotnet Core projects.");
-                exit(0);
+        "init" => match handle_config_generation() {
+            Ok(_) => {
+                println!("✅ Configuration generated successfully!");
+            }
+            Err(e) => {
+                eprintln!("Error generating configuration, {}", e);
+                exit(1);
+            }
+        },
+        "generate" => {
+            // Check if the fileforge.config.json file exists at the root of the project
+            let config_path = std::path::Path::new("fileforge.config.json");
+
+            if !config_path.exists() {
+                eprintln!("Error: fileforge.config.json not found. Run 'fileforge init' to generate a config.");
+                exit(1);
             }
 
-            // if let Err(e) = config::dotnet_config::create_or_update_config() {
-            //     eprintln!("Error generating configuration: {}", e);
-            //     std::process::exit(1);
-            // }
-        }
-        "generate" => {
-            handle_dotnet_generation::handle_dotnet_generation();
+            // Check for the presence of the --ignore-git flag
+            let ignore_git = args.contains(&"--ignore-git".to_string());
+
+            println!("🔍 Checking for unstaged git files...");
+
+            if !ignore_git {
+                // Check for unstaged git files
+                match check_git_status() {
+                    Ok(_) => {
+                        println!("✅ Git status check passed!");
+                    }
+                    Err(e) => {
+                        eprintln!("Error: You have unstaged files. Please commit or stash your changes, {}", e);
+                        exit(1);
+                    }
+                }
+            } else {
+                println!("⚠️ Skipping Git status check due to --ignore-git flag.");
+            }
+
+            let current_dir = env::current_dir().unwrap();
+            println!("📂 Current directory: {:?}", current_dir);
+            thread::sleep(Duration::from_secs(1));
+
+            // Load the configuration from `fileforge.config.json`
+            let config = shared::get_current_config::get_current_config(current_dir);
+
+            // Extract configuration values
+            let project_type = config["project_type"].as_str().unwrap_or("dotnet");
+            println!("🔧 Project type: {}", project_type);
+            match project_type {
+                "dotnet" => match handle_dotnet_generation() {
+                    Ok(_) => {
+                        print!("✅ Everything has been generated successfully!");
+                    }
+                    Err(_) => {
+                        eprintln!("❌ Error generating Dockerfile for .NET project.");
+                        exit(1);
+                    }
+                },
+                "angular" => {
+                    // angular_generator::handle_angular_generation::handle_angular_generation();
+                    match handle_angular_generation() {
+                        Ok(_) => {
+                            print!("✅ Everything has been generated successfully!");
+                        }
+                        Err(_) => {
+                            eprintln!("❌ Error generating Dockerfile for Angular project.");
+                            exit(1);
+                        }
+                    }
+                }
+                _ => {
+                    eprintln!("Unknown project type: {}", project_type);
+                    exit(1);
+                }
+            }
         }
         _ => {
             eprintln!("Unknown command: {}", args[1]);
