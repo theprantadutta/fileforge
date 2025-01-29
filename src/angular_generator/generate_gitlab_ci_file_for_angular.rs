@@ -152,10 +152,22 @@ ansible-job:
     thread::sleep(SLEEP_DURATION);
     fs::create_dir_all(&output_dir)?;
 
-    // Write the updated content to `.gitlab-ci.yml` in the output directory
     let output_path = output_dir.join(".gitlab-ci.yml");
+
+    // Create a backup file path
+    let backup_path = output_dir.join(".gitlab-ci.yml.backup");
+
+    // Check if .gitlab-ci.yml exists and create a backup
+    if output_path.exists() {
+        println!("📂 Backing up {:?} to {:?}...", output_path, backup_path);
+        fs::rename(&output_path, &backup_path)?;
+        println!("✅ Backup created successfully.");
+    }
+
+    // Write the updated .gitlab-ci.yml content
     let mut output_file = File::create(&output_path)?;
     output_file.write_all(updated_gitlab_ci.as_bytes())?;
+
     println!("🎉 Generated .gitlab-ci.yml in {:?}", output_path);
     thread::sleep(SLEEP_DURATION);
 

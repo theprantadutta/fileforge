@@ -101,28 +101,56 @@ networks:
     thread::sleep(SLEEP_DURATION);
     fs::create_dir_all(&output_dir)?;
 
+    // Delete any previous docker-compose.yaml file
+    let file_paths = ["docker-compose.yaml", "docker-compose.yml"];
+
+    for file_path in file_paths.iter() {
+        let backup_path = format!("{}.backup", file_path);
+
+        if Path::new(file_path).exists() {
+            println!("📂 Backing up {} to {}...", file_path, backup_path);
+            thread::sleep(SLEEP_DURATION);
+            match fs::rename(file_path, &backup_path) {
+                Ok(_) => {
+                    println!("✅ Backup created successfully.");
+                    thread::sleep(SLEEP_DURATION);
+                }
+                Err(e) => {
+                    eprintln!("❌ Error creating backup: {}", e);
+                    continue; // Skip deletion if backup fails
+                }
+            }
+
+            // Delete the backup file (if needed)
+            // Uncomment below if you want to delete the backup instead
+            // match fs::remove_file(&backup_path) {
+            //     Ok(_) => println!("🗑️ Backup file deleted."),
+            //     Err(e) => eprintln!("❌ Error deleting backup: {}", e),
+            // }
+        } else {
+            println!("🗂️ No previous {} file found.", file_path);
+            thread::sleep(SLEEP_DURATION);
+        }
+    }
+
     let output_path = output_dir.join("compose.yaml");
 
-    // Delete any previous docker-compose.yaml file
-    let file_path = "docker-compose.yaml";
-    if Path::new(file_path).exists() {
-        println!("🗑️  Deleting previous docker-compose.yaml file...");
-        thread::sleep(SLEEP_DURATION);
-        match fs::remove_file(file_path) {
-            Ok(_) => {
-                println!("✅ Previous file deleted successfully.");
-                thread::sleep(SLEEP_DURATION);
-            }
-            Err(e) => eprintln!("❌ Error deleting file: {}", e),
-        }
-    } else {
-        println!("🗂️ No previous docker-compose.yaml file found.");
+    // Convert PathBuf to String for backup file
+    let backup_path = output_path.with_extension("yaml.backup");
+
+    // Check if the compose.yaml file exists and create a backup
+    if output_path.exists() {
+        println!("📂 Backing up {:?} to {:?}...", output_path, backup_path);
+        fs::rename(&output_path, &backup_path)?;
+        println!("✅ Backup created successfully.");
         thread::sleep(SLEEP_DURATION);
     }
 
-    // Write the generated content to `compose.yaml`
+    // Write the generated content to compose.yaml
     let mut output_file = File::create(&output_path)?;
     output_file.write_all(template.as_bytes())?;
+    thread::sleep(SLEEP_DURATION);
+
     println!(
         "🎉 Compose file generated successfully at {:?}",
         output_path

@@ -107,9 +107,21 @@ ENTRYPOINT ["dotnet", "{{ project_directory }}.dll"]
     fs::create_dir_all(&output_dir)?;
     thread::sleep(SLEEP_DURATION);
 
+    // Create a backup file path
     let output_path = output_dir.join("Dockerfile");
+    let backup_path = output_dir.join("Dockerfile.backup");
+
+    // Check if Dockerfile exists and create a backup
+    if output_path.exists() {
+        println!("📂 Backing up {:?} to {:?}...", output_path, backup_path);
+        fs::rename(&output_path, &backup_path)?;
+        println!("✅ Backup created successfully.");
+    }
+
+    // Write the updated Dockerfile
     let mut output_file = File::create(&output_path)?;
     output_file.write_all(updated_dockerfile.as_bytes())?;
+
     println!("✅ Dockerfile written to: {:?}", output_path);
     thread::sleep(SLEEP_DURATION);
 
