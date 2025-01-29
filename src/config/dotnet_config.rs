@@ -61,22 +61,29 @@ pub fn create_or_update_config() -> io::Result<()> {
         let csproj_content = fs::read_to_string(csproj_entry.path())?;
         if let Some(start) = csproj_content.find("<TargetFramework>net") {
             if let Some(end) = csproj_content[start..].find("</TargetFramework>") {
-                let version = &csproj_content[start + 17..start + end];
-                println!("Found .NET version: {}", version);
-                version.trim().to_string()
+                let raw_version = &csproj_content[start + 17..start + end];
+                if let Some(version) = raw_version.strip_prefix("net") {
+                    println!("Found .NET version: {}", version);
+                    version.trim().to_string()
+                } else {
+                    println!(
+                        "Invalid .NET version format. Please provide the .NET version manually:"
+                    );
+                    get_input_from_user("Dotnet version (e.g., 9.0): ")
+                }
             } else {
                 println!(
                     "No <TargetFramework> closing tag found. Please provide the .NET version:"
                 );
-                get_input_from_user("Dotnet version (e.g., net9.0): ")
+                get_input_from_user("Dotnet version (e.g., 9.0): ")
             }
         } else {
             println!("No <TargetFramework> tag found. Please provide the .NET version:");
-            get_input_from_user("Dotnet version (e.g., net9.0): ")
+            get_input_from_user("Dotnet version (e.g., 9.0): ")
         }
     } else {
         println!("No .csproj file found. Please provide the .NET version:");
-        get_input_from_user("Dotnet version (e.g., net9.0): ")
+        get_input_from_user("Dotnet version (e.g., 9.0): ")
     };
 
     let hyphened_root_namespace = root_namespace.replace("_", "-").to_lowercase();
